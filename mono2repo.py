@@ -7,11 +7,14 @@ Example:
 """
 import os
 import re
+import contextlib
 import logging
 import platform
 import argparse
 import pathlib
 import subprocess
+import shutil
+import tempfile
 
 
 log = logging.getLogger(__name__)
@@ -37,6 +40,20 @@ def run(args, abort=True, silent=False, dryrun=False):
             raise
         elif abort:
             raise abort
+
+
+@contextlib.contextmanager
+def tempdir(tmpdir=None):
+    path = tmpdir or pathlib.Path(tempfile.mkdtemp())
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        yield path
+    finally:
+        if not tmpdir:
+            log.debug("cleaning up tmpdir %s", path)
+            shutil.rmtree(path, ignore_errors=True)
+        else:
+            log.debug("leaving behind tmpdir %s", tmpdir)
 
 
 def split_source(path):
@@ -131,10 +148,12 @@ def migration(igit, ogit, subdir):
     # Add legacy plugin clone as a remote and
     #  pull contents into new branch
     ogit.run(["remote", "add", "legacy", igit.worktree])
+
     ogit.run(["fetch", "legacy", "master",])
     ogit.run(["checkout", "-b", "migrate", "--track", "legacy/master"])
-
     ogit.run(["rebase", "--committer-date-is-author-date", "master"])
+
+    ogit.run(["remote", "legacy"])
 
 
 def main(options):
@@ -150,13 +169,14 @@ def main(options):
     source, subdir = split_source(options.source)
     log.debug("source subdir [%s]", subdir)
 
-    igit = Git.clone(source, options.output.resolve() / "legacy-repo")
-    log.debug("input client %s", igit)
+    with tempdir() as tmpdir:
+        igit = Git.clone(source, tmpdir / "legacy-repo")
+        log.debug("input client %s", igit)
 
-    ogit = Git(worktree=options.output.resolve() / "plugin-repo")
-    log.debug("output client %s", ogit)
+        ogit = Git(worktree=options.output.resolve())
+        log.debug("output client %s", ogit)
 
-    migration(igit, ogit, subdir)
+        migration(igit, ogit, subdir)
 
 
 if __name__ == "__main__":
