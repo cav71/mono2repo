@@ -2,7 +2,7 @@
 """extract from a mono repo a single project
 
 Example:
-   ./mono2repo https://github.com/getpelican/pelican.git/pelican/themes/notmyidea outputdir
+   ./mono2repo create https://github.com/cav71/pelican.git/pelican/themes/notmyidea outputdir
 
 """
 import os
@@ -114,19 +114,30 @@ class Git:
 
 
 def parse_args(args=None):
-    p = argparse.ArgumentParser()
-    p.add_argument("-v", "--verbose", action="store_true")
-    p.add_argument("source")
-    p.add_argument("output", type=pathlib.Path)
-    options = p.parse_args(args)
+    parser = argparse.ArgumentParser()
+    sbs = parser.add_subparsers()
+    subparsers = {
+        "create": create,
+        "update": update,
+    }
 
+    for name, func in subparsers.items():
+        p = sbs.add_parser(name)
+        p.add_argument("-v", "--verbose", action="store_true")
+        p.set_defaults(func=func)
+        subparsers[name] = p
+
+    for name in [ "create", "update", ]:
+        subparsers[name].add_argument("source")
+        subparsers[name].add_argument("output", type=pathlib.Path)
+
+    options = parser.parse_args(args)
     options.error = p.error
-
-    logging.basicConfig(level=logging.DEBUG if options.verbose else logging.INFO)
+    logging.basicConfig(level=logging.DEBUG if getattr(options, "verbose") else logging.INFO)
     return options
     
 
-def migration(igit, ogit, subdir):
+def create(igit, ogit, subdir):
     # prepping the legacy tree
 
     # filter existing commits
@@ -148,15 +159,37 @@ def migration(igit, ogit, subdir):
     # Add legacy plugin clone as a remote and
     #  pull contents into new branch
     ogit.run(["remote", "add", "legacy", igit.worktree])
+    try:
+        ogit.run(["fetch", "legacy", "master",])
+        ogit.run(["checkout", "-b", "migrate", "--track", "legacy/master"])
+        ogit.run(["rebase", "--committer-date-is-author-date", "master"])
+    finally:
+        ogit.run(["remote", "remove", "legacy"])
 
-    ogit.run(["fetch", "legacy", "master",])
-    ogit.run(["checkout", "-b", "migrate", "--track", "legacy/master"])
-    ogit.run(["rebase", "--committer-date-is-author-date", "master"])
 
-    ogit.run(["remote", "legacy"])
+def update(igit, ogit, subdir):
+    # prepping the legacy tree
+
+    # filter existing commits
+    igit.run([ "filter-repo", 
+               "--path", f"{subdir}/",
+               "--path-rename", f"{subdir}/:" ])
+
+    # Add legacy plugin clone as a remote and
+    #  pull contents into new branch
+    ogit.run(["remote", "add", "legacy", igit.worktree])
+    try:
+        ogit.run(["fetch", "legacy", "master",])
+        ogit.run(["checkout", "-B", "migrate", "--track", "legacy/master"])
+        ogit.run(["rebase", "--committer-date-is-author-date", "master"])
+    finally:
+        ogit.run(["remote", "remove", "legacy"])
 
 
 def main(options):
+    func, error = options.func, options.error
+    [ delattr(options, m) for m in [ "func", "error", "verbose", ] ]
+
     log.debug("found system %s", platform.uname().system.lower())
     log.debug("git version [%s]", run(["git", "--version"]))
 
@@ -176,7 +209,7 @@ def main(options):
         ogit = Git(worktree=options.output.resolve())
         log.debug("output client %s", ogit)
 
-        migration(igit, ogit, subdir)
+        func(igit, ogit, subdir)
 
 
 if __name__ == "__main__":
