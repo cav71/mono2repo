@@ -2,7 +2,7 @@
 """extract from a mono repo a single project
 
 Example:
-   ./mono2repo create https://github.com/cav71/pelican.git/pelican/themes/notmyidea outputdir
+   ./mono2repo init https://github.com/cav71/pelican.git/pelican/themes/notmyidea outputdir
 
 """
 import os
@@ -18,6 +18,14 @@ import tempfile
 
 
 log = logging.getLogger(__name__)
+
+
+class Mono2RepoError(Exception):
+    pass
+
+
+class InvalidGitUriError(Mono2RepoError):
+    pass
 
 
 def which(exe):
@@ -42,6 +50,15 @@ def run(args, abort=True, silent=False, dryrun=False):
             raise abort
 
 
+def split_source(path):
+    if re.search("^(http|https|git):", str(path)) or str(path).startswith("git@github.com:"):
+        assert ".git" in str(path), f"no .git in path {path}"
+        path1 = path[:path.find(".git")] + ".git"
+        subdir1 = path[path.find(".git")+4:].lstrip("/")
+        return (path1, subdir1)
+    raise argparse.ArgumentError("invalid git uri")
+
+
 @contextlib.contextmanager
 def tempdir(tmpdir=None):
     path = tmpdir or pathlib.Path(tempfile.mkdtemp())
@@ -54,16 +71,6 @@ def tempdir(tmpdir=None):
             shutil.rmtree(path, ignore_errors=True)
         else:
             log.debug("leaving behind tmpdir %s", tmpdir)
-
-
-def split_source(path):
-    if re.search("^(http|https|git):", str(path)):
-        assert ".git" in str(path), f"no .git in path {path}"
-        path1 = path[:path.find(".git")] + ".git"
-        subdir1 = path[path.find(".git")+4:].lstrip("/")
-        return (path1, subdir1)
-    else:
-        return Git.findroot(path)
 
 
 class Git:
@@ -98,12 +105,16 @@ class Git:
         return run(cmd, **kwargs)
 
     # commands
-    def check(self, args):
-        ret = self.run(args, abort=False, silent=True)
-        return None if ret is None else ret.strip()
-
-    def st(self):
-        return self.run("status")
+    def good(self):
+        with contextlib.suppress(subprocess.CalledProcessError):
+            self.run(["status"])
+            return True
+        
+    # def check(self, args):
+    #     ret = self.run(args, abort=False, silent=True)
+    #     return None if ret is None else ret.strip()
+    # def st(self):
+    #    return self.run("status")
 
     def init(self, branch=None):
         if not self.worktree.exists():
@@ -116,20 +127,34 @@ class Git:
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
     sbs = parser.add_subparsers()
-    subparsers = {
-        "create": create,
-        "update": update,
-    }
+    
+    # init
+    p = sbs.add_parser("init")
+    p.set_defaults(func=init)
+    p.add_argument("-v", "--verbose", action="store_true")
 
-    for name, func in subparsers.items():
-        p = sbs.add_parser(name)
-        p.add_argument("-v", "--verbose", action="store_true")
-        p.set_defaults(func=func)
-        subparsers[name] = p
+    p.add_argument("output", type=pathlib.Path)
+    p.add_argument("source", type=split_source)
 
-    for name in [ "create", "update", ]:
-        subparsers[name].add_argument("source")
-        subparsers[name].add_argument("output", type=pathlib.Path)
+    p = sbs.add_parser("update")
+    p.set_defaults(func=update)
+    p.add_argument("-v", "--verbose", action="store_true")
+    p.add_argument("output", type=pathlib.Path)
+    p.add_argument("source", nargs="?", type=split_source, default=(None, None))
+    #subparsers = {
+    #    "init": init,
+    #    "update": update,
+    #}
+
+    #for name, func in subparsers.items():
+    #    p = sbs.add_parser(name)
+    #    p.add_argument("-v", "--verbose", action="store_true")
+    #    p.set_defaults(func=func)
+    #    subparsers[name] = p
+
+    #for name in [ "init", "update", ]:
+    #    subparsers[name].add_argument("source")
+    #    subparsers[name].add_argument("output", type=pathlib.Path)
 
     options = parser.parse_args(args)
     options.error = p.error
@@ -137,15 +162,20 @@ def parse_args(args=None):
     return options
     
 
-def create(igit, ogit, subdir):
+def init(igit, ogit, subdir, source):
+    if not (igit.worktree / subdir).exists():
+        raise RuntimeError("no subdir under git repo", subdir, source)
+    
     # prepping the legacy tree
 
+    log.debug("filtering repo paths")
     # filter existing commits
     igit.run([ "filter-repo", 
                "--path", f"{subdir}/",
                "--path-rename", f"{subdir}/:" ])
 
     # extract latest mod date 
+    log.debug("get latest modification date")
     txt = igit.run(["log", "--reverse", "--format=\"%t|%cd|%s\""])
     date = txt.split("\n")[0].split("|")[1]
     log.debug("got latest date [%s]", date)
@@ -187,9 +217,6 @@ def update(igit, ogit, subdir):
 
 
 def main(options):
-    func, error = options.func, options.error
-    [ delattr(options, m) for m in [ "func", "error", "verbose", ] ]
-
     log.debug("found system %s", platform.uname().system.lower())
     log.debug("git version [%s]", run(["git", "--version"]))
 
@@ -199,18 +226,32 @@ def main(options):
                       " (https://github.com/newren/git-filter-repo)")
     log.debug("filter-repo [%s]", filter_repo_version)
 
-    source, subdir = split_source(options.source)
-    log.debug("source subdir [%s]", subdir)
+    ogit = Git(worktree=options.output.resolve())
+    log.debug("output client %s", ogit)
+    if options.func == init and ogit.good():
+        options.error(f"directory already initialized, {ogit}")
+
+    source, subdir = options.source
+    if not any(options.source):
+        log.debug(f"getting source info from {ogit}")
+        # detect from ogit the source
+        txt = ogit.run(["config", "--local", "--get", "mono2repo.uri"])
+        source, subdir = split_source(txt)
+
+    log.debug("git repo source [%s]", source)
+    log.debug("repo subdir [%s]", subdir)
 
     with tempdir() as tmpdir:
         igit = Git.clone(source, tmpdir / "legacy-repo")
         log.debug("input client %s", igit)
 
-        ogit = Git(worktree=options.output.resolve())
-        log.debug("output client %s", ogit)
-
-        func(igit, ogit, subdir)
-
+        if options.func.__name__ == "init":
+            init(igit, ogit, subdir, source)
+        else:
+            update(igit, ogit, subdir)
+    # finally we'll leave the configuration parameters for the update
+    ogit.run(["config", "--local", "mono2repo.uri", source + "/" + subdir, ]) 
+        
 
 if __name__ == "__main__":
     main(parse_args())
