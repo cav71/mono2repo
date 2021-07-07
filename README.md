@@ -1,9 +1,18 @@
 # mono2repo
-This script will extract from a monorepo a subtree and it will make it into a separate repo.
+This module (and script) will create a new stand alone repo out of
+monorepo subtree, including all the subtree history and commits.
 
+## Example
+
+Create a new repo out of the pelican summary subtree:
 ```shell
-mono2repo https://github.com/getpelican/pelican.git/pelican/themes/notmyidea outputdir
+mono2repo init summary-extracted \\
+    https://github.com/getpelican/pelican-plugins.git/summary
 ```
-This will create outputdir containing the original monorepo checkout and the new project.
+
+Update the summary-extracted with the latest summary related changes:
+```
+mono2repo update summary-extracted
+```
 
 (see https://blog.getpelican.com/namespace-plugin-migration.html for more details)
