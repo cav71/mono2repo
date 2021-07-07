@@ -46,7 +46,7 @@ jobs:
       - name: Run tests and coverage
         shell: bash
         env:
-          PYTHONPATH: src
+          PYTHONPATH: .
         run: |
           py.test \
               --junitxml=build/qa-${{ matrix.python-version }}/junit.xml \

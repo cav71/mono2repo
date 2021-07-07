@@ -38,7 +38,7 @@ jobs:
 
       - name: Build packages
         env:
-          PYTHONPATH: src
+          PYTHONPATH: .
           GITHUB_DUMP: ${{ toJson(github) }}
         run: |
           python -m build
