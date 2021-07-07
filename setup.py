@@ -56,6 +56,9 @@ setup(
     version=version,
     url="https://github.com/cav71/mono2repo",
     py_modules=["mono2repo",],
+    entry_points = {
+        'console_scripts': ['mono2repo=mono2repo:main'],
+    },
     description="extract a monorepo subdir",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
