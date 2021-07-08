@@ -219,7 +219,8 @@ def update(igit, ogit, subdir):
         ogit.run(["remote", "remove", "legacy"])
 
 
-def main(options):
+def main(options=None):
+    options = options or parse_args()
     log.debug("found system %s", platform.uname().system.lower())
     log.debug("git version [%s]", run(["git", "--version"]))
 
