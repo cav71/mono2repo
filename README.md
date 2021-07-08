@@ -1,13 +1,34 @@
 # mono2repo
-This module (and script) will create a new stand alone repo out of
+This module (and related script) creates a new stand alone repo out of
 monorepo subtree, including all the subtree history and commits.
 
+
+## Install
+
+```shell
+# prod version
+pip intall mono2repo
+
+# beta version
+pip install --index-url https://test.pypi.org/simple mono2repo
+```
+
 ## Example
+
+This is the pelican git source tree:
+```shell
+https://github.com/getpelican/pelican-plugins.git
+   ....
+   └ summary/
+    ├── Readme.rst
+    └── summary.py
+```
+We want to extract the summary subdir and git log related entries.
 
 ### Create a new repo
 Create a new repo out of the pelican summary subtree:
 ```shell
-mono2repo init summary-extracted \\
+mono2repo init summary-extracted \
     https://github.com/getpelican/pelican-plugins.git/summary
 ```
 
