@@ -85,8 +85,8 @@ jobs:
       - name: Publish packages
         shell: bash
         env:
-          TWINE_USERNAME: ${{ secrets.PYPI_TEST_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: |
           twine upload --skip-existing --non-interactive --repository testpypi dist/*
   

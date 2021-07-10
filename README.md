@@ -6,11 +6,7 @@ monorepo subtree, including all the subtree history and commits.
 ## Install
 
 ```shell
-# prod version
 pip intall mono2repo
-
-# beta version
-pip install --index-url https://test.pypi.org/simple mono2repo
 ```
 
 ## Example
