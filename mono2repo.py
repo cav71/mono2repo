@@ -95,7 +95,7 @@ class Git:
         return Git(dst)
 
     def __init__(self, worktree=None):
-        self.worktree = worktree or pathlib.Path(os.getcwd())
+        self.worktree = pathlib.Path(worktree or os.getcwd())
 
     def __repr__(self):
         return f"<{self.__class__.__name__} worktree={self.worktree} at {hex(id(self))}>"
@@ -110,7 +110,7 @@ class Git:
     # commands
     def good(self):
         with contextlib.suppress(subprocess.CalledProcessError):
-            self.run(["status"])
+            self.run(["status"], silent=True)
             return True
         
     # def check(self, args):
@@ -131,33 +131,22 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser()
     sbs = parser.add_subparsers()
     
-    # init
-    p = sbs.add_parser("init")
-    p.set_defaults(func=init)
-    p.add_argument("-v", "--verbose", action="store_true")
 
+    def subparser(name, func):
+        p = sbs.add_parser(name)
+        p.set_defaults(func=func)
+        p.add_argument("-v", "--verbose", action="store_true")
+        p.add_argument("--tmpdir", type=pathlib.Path)
+        return p
+
+    # init
+    p = subparser("init", init)
     p.add_argument("output", type=pathlib.Path)
     p.add_argument("source", type=split_source)
 
-    p = sbs.add_parser("update")
-    p.set_defaults(func=update)
-    p.add_argument("-v", "--verbose", action="store_true")
+    p = subparser("update", update)
     p.add_argument("output", type=pathlib.Path)
     p.add_argument("source", nargs="?", type=split_source, default=(None, None))
-    #subparsers = {
-    #    "init": init,
-    #    "update": update,
-    #}
-
-    #for name, func in subparsers.items():
-    #    p = sbs.add_parser(name)
-    #    p.add_argument("-v", "--verbose", action="store_true")
-    #    p.set_defaults(func=func)
-    #    subparsers[name] = p
-
-    #for name in [ "init", "update", ]:
-    #    subparsers[name].add_argument("source")
-    #    subparsers[name].add_argument("output", type=pathlib.Path)
 
     options = parser.parse_args(args)
     options.error = p.error
@@ -245,7 +234,7 @@ def main(options=None):
     log.debug("git repo source [%s]", source)
     log.debug("repo subdir [%s]", subdir)
 
-    with tempdir() as tmpdir:
+    with tempdir(options.tmpdir) as tmpdir:
         igit = Git.clone(source, tmpdir / "legacy-repo")
         log.debug("input client %s", igit)
 
