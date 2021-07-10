@@ -7,6 +7,8 @@ monorepo subtree, including all the subtree history and commits.
 
 ```shell
 pip intall mono2repo
+
+(or you can just download the mono2repo.py module)
 ```
 
 ## Example
