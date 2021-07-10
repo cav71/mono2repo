@@ -2,9 +2,10 @@ import sys
 import os
 import shutil
 import uuid
-import pytest
 import pathlib
 import subprocess
+
+import pytest
 
 import mono2repo
 
@@ -19,6 +20,8 @@ def setup():
 
 
 def get_commits(git, subdir=None, astype=set):
+    breakpoint()
+    return
     subdir = [subdir,] if subdir else []
     result = [
         " ".join(l.split(" ")[1:])
