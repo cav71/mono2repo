@@ -50,10 +50,18 @@ jobs:
           OUTDIR: build/qa-${{ matrix.python-version }}
         run: |
           py.test --cov=mono2repo \
-              --junitxml=build/$OUTDIR/junit.xml \
-              --html=build/$OUTDIR/junit.html --self-contained-html \
               --cov-report=html:$OUTDIR/coverage \
+              --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
             tests
+
+      - name: Static check
+        shell: bash
+        env:
+          PYTHONPATH: .
+          OUTDIR: build/qa-${{ matrix.python-version }}
+        run: |
+          mypy mono2repo.py \
+            --no-incremental --xslt-html-report $OUTDIR/mypy
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v2
