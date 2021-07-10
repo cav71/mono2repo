@@ -47,7 +47,7 @@ jobs:
         shell: bash
         env:
           PYTHONPATH: .
-	  OUTDIR: build/qa-${{ matrix.python-version }}
+          OUTDIR: build/qa-${{ matrix.python-version }}
         run: |
           py.test --cov=mono2repo \
               --junitxml=build/$OUTDIR/junit.xml \
