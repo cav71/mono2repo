@@ -20,8 +20,6 @@ def setup():
 
 
 def get_commits(git, subdir=None, astype=set):
-    breakpoint()
-    return
     subdir = [subdir,] if subdir else []
     result = [
         " ".join(l.split(" ")[1:])
