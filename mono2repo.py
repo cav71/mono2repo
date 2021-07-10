@@ -17,7 +17,7 @@ import shutil
 import tempfile
 
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 __hash__ = ""
 
 log = logging.getLogger(__name__)
@@ -128,7 +128,20 @@ class Git:
 
 
 def parse_args(args=None):
-    parser = argparse.ArgumentParser()
+    class F(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
+        pass
+    parser = argparse.ArgumentParser(formatter_class=F, description="""
+Create a new git checkout from a git repo.
+""",  epilog="""
+Eg.
+    mono2repo init summary-extracted \\
+        https://github.com/getpelican/pelican-plugins.git/summary
+
+    mono2repo update summary-extracted
+
+""".rstrip())
+    parser.add_argument('--version', action='version', version=f"%(prog)s {__version__}")
+
     sbs = parser.add_subparsers()
     
 

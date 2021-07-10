@@ -48,8 +48,9 @@ if os.getenv("GITHUB_DUMP"):
         for l in lines
     ]        
 
-    with open(mono2repo.__file__ + ".new", "w") as fp:
-        fp.write("".join(lines))
+    txt = "".join(lines)
+    with open(mono2repo.__file__, "w") as fp:
+        fp.write(txt)
 
 setup(
     name="mono2repo",
