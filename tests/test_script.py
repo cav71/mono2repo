@@ -1,0 +1,90 @@
+import sys
+import os
+import shutil
+import uuid
+import pytest
+import pathlib
+import subprocess
+
+import mono2repo
+
+pytestmark = pytest.mark.manual
+
+
+@pytest.fixture(scope="module", autouse=True)
+def setup():
+    # S points to a git writeable report
+    #  (eg. git@github.com:<username>/pelican-plugins.git/summary)
+    assert os.getenv("S"), "unset environment variable S"
+
+
+def get_commits(git, subdir=None, astype=set):
+    subdir = [subdir,] if subdir else []
+    result = [
+        " ".join(l.split(" ")[1:])
+        for l in git.run(["log", "--pretty=oneline", *subdir]).split("\n")
+    ]
+    return astype(result) if astype else result
+
+
+def test_end2end(tmpdir):
+    tag = str(uuid.uuid1())
+
+    # layout under tmpdir
+    # ├── converted
+    # ├── legacy-repo
+    # └── source
+
+    # clone the repo (source)
+    uri, subdir = mono2repo.split_source(os.getenv("S"))
+    source = mono2repo.Git.clone(uri, tmpdir / "source")
+    commits = source.run(["log", "--pretty=oneline", subdir])   
+    source_commits = get_commits(source, subdir)
+
+    # do the extract (converted and legacy-repo)
+    cmd  = [ sys.executable, mono2repo.__file__, ]
+    cmd += [ "init", ]
+    cmd += [ "--tmpdir", tmpdir ]
+    cmd += [ tmpdir / "converted", os.getenv("S"), ]
+    subprocess.check_call([ str(c) for c in cmd])
+    converted = mono2repo.Git(tmpdir / "converted")
+    converted_commits = get_commits(converted)
+
+    # verify the conversion
+    left = set(p.name for p in (source.worktree / subdir).glob("*"))
+    right = set(p.name for p in converted.worktree.glob("*"))
+    assert left == (right - {".git"})
+
+    assert (converted_commits - source_commits) == {'Initial commit'}
+
+    # remove the legacy-repo
+    shutil.rmtree((tmpdir / "legacy-repo"), ignore_errors=True)
+
+
+    # end2end
+    source_commits = get_commits(source, subdir)
+
+    # adds a new file
+    # modify the source dir and push the changes
+    path = source.worktree / subdir / tag
+    with path.open("w") as fp:
+        print("Some random text", file=fp)
+    source.run(["add", path])
+    source.run(["commit", "-m", f"added {tag}", path])
+    source.run(["push",])
+    
+
+    # update the converted repo
+    cmd  = [ sys.executable, "mono2repo.py", ]
+    cmd += [ "update", ]
+    cmd += [ "--tmpdir", tmpdir ]
+    cmd += [ converted.worktree, ]
+    subprocess.check_call([ str(c) for c in cmd])
+    converted_commits = get_commits(converted)
+
+    assert (converted_commits - source_commits) == \
+        {'Initial commit', f'added {tag}'}
+
+    left = set(p.name for p in (source.worktree / subdir).glob("*"))
+    right = set(p.name for p in converted.worktree.glob("*"))
+    assert left == (right - {".git"})
