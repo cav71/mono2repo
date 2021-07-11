@@ -1,3 +1,4 @@
+# PYTHONPATH=$(pwd) S=git@github.com:cav71/pelican-plugins.git/summary py.test -vvs tests/test_script.py -m manual
 import sys
 import os
 import shutil
