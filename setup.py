@@ -56,7 +56,7 @@ def update_version(data, path, fallback):
     gdata = json.loads(data)
     version, thehash = hubversion(gdata, fallback)
 
-    lines = pathlib.Path(path).read_text()
+    lines = pathlib.Path(path).read_text().split("\n")
 
     exp = re.compile(r"__version__\s*=\s*")
     exp1 = re.compile(r"__hash__\s*=\s*")
@@ -64,7 +64,7 @@ def update_version(data, path, fallback):
     assert len([ l for l in lines if exp1.search(l)]) == 1
 
     lines = [
-        f"__version__ = \"{version}\"\n" if exp.search(l) else
+        f"__version__ = \"{version}\"" if exp.search(l) else
         f"__hash__ = \"{thehash}\"" if exp1.search(l) else
         l
         for l in lines
