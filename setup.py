@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import json
+import pathlib
 import collections
 
 
@@ -10,14 +11,34 @@ from setuptools import setup, find_namespace_packages
 import mono2repo
 
 
-def hubversion(gdata):
+def hubversion(gdata, fallback):
+    """returns (version, shasum)
+    >>> hubversion({
+        'ref': 'refs/heads/beta/0.0.4',
+        'sha': '2169f90c22e',
+        'run_number': '8',
+    }, None)
+    ('0.0.4b8', '2169f90c22e')
+    >>> hubversion({
+        'ref': 'refs/tags/release/0.0.3',
+        'sha': '5547365c82',
+        'run_number': '3',
+    }, None)
+    ('0.0.3', '5547365c82')
+    >>> hubversion({
+        'ref': 'refs/heads/master',
+        'sha': '2169f90c',
+        'run_number': '20',
+    }, '123'))
+    ('123', '2169f90c')
+"""
     txt = gdata["ref"]
     number = gdata['run_number']
     shasum = gdata["sha"]
     head, _, rest = txt.partition("/")
 
     cases = [
-        ("refs/heads/master", mono2repo.__version__),
+        ("refs/heads/master", fallback,),
         ("refs/heads/beta/", f"b{number}"),
         ("refs/tags/release/", ""),
     ]
@@ -28,16 +49,17 @@ def hubversion(gdata):
     raise RuntimeError("unhandled github ref", txt)
 
 
-version = mono2repo.__version__
-if os.getenv("GITHUB_DUMP"):
-    gdata = json.loads(os.getenv("GITHUB_DUMP"))   
-    version, thehash = hubversion(gdata)
-    with open(mono2repo.__file__) as fp:
-        lines = fp.readlines()
+def update_version(data, path, fallback):
+    if not data:
+        return
+
+    gdata = json.loads(data)
+    version, thehash = hubversion(gdata, fallback)
+
+    lines = pathlib.Path(path).read_text()
 
     exp = re.compile(r"__version__\s*=\s*")
     exp1 = re.compile(r"__hash__\s*=\s*")
-
     assert len([ l for l in lines if exp.search(l)]) == 1
     assert len([ l for l in lines if exp1.search(l)]) == 1
 
@@ -46,11 +68,16 @@ if os.getenv("GITHUB_DUMP"):
         f"__hash__ = \"{thehash}\"" if exp1.search(l) else
         l
         for l in lines
-    ]        
+    ]
 
-    txt = "".join(lines)
-    with open(mono2repo.__file__, "w") as fp:
-        fp.write(txt)
+    pathlib.Path(mono2repo.__file__).write_text("\n".join(lines))
+    return version
+
+
+version = update_version(os.getenv("GITHUB_DUMP"),
+    mono2repo.__file__,
+    mono2repo.__version__)
+
 
 setup(
     name="mono2repo",
