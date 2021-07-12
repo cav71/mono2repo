@@ -77,7 +77,7 @@ def test_end2end(tmpdir):
     
 
     # update the converted repo
-    cmd  = [ sys.executable, "mono2repo.py", ]
+    cmd  = [ sys.executable, mono2repo.__file__, ]
     cmd += [ "update", ]
     cmd += [ "--tmpdir", tmpdir ]
     cmd += [ converted.worktree, ]

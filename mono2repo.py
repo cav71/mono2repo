@@ -2,7 +2,8 @@
 """extract from a mono repo a single project
 
 Example:
-   ./mono2repo init https://github.com/cav71/pelican.git/pelican/themes/notmyidea outputdir
+   ./mono2repo init outputdir \\
+        https://github.com/cav71/pelican.git/pelican/themes/notmyidea
 
 """
 import os
@@ -59,7 +60,7 @@ def split_source(path):
         path1 = path[:path.find(".git")] + ".git"
         subdir1 = path[path.find(".git")+4:].lstrip("/")
         return (path1, subdir1)
-    raise argparse.ArgumentError("invalid git uri")
+    raise ValueError("invalid git uri", path)
 
 
 @contextlib.contextmanager
@@ -98,7 +99,7 @@ class Git:
         self.worktree = pathlib.Path(worktree or os.getcwd())
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} worktree={self.worktree} at {hex(id(self))}>"
+        return f"<{self.__class__.__name__} branch={self.branch or 'undef'} worktree={self.worktree} at {hex(id(self))}>"
 
     def run(self, args, **kwargs):
         cmd = [ "git", ]
@@ -112,12 +113,16 @@ class Git:
         with contextlib.suppress(subprocess.CalledProcessError):
             self.run(["status"], silent=True)
             return True
-        
-    # def check(self, args):
-    #     ret = self.run(args, abort=False, silent=True)
-    #     return None if ret is None else ret.strip()
-    # def st(self):
-    #    return self.run("status")
+
+    @property
+    def branch(self):
+        if self.good():
+            return self.run(["branch", "--show-current",]).strip()
+
+    @branch.setter
+    def branch(self, value):
+        self.run(["checkout", value])
+        return self.branch
 
     def init(self, branch=None):
         if not self.worktree.exists():
@@ -142,8 +147,8 @@ Eg.
 """.rstrip())
     parser.add_argument('--version', action='version', version=f"%(prog)s {__version__}")
 
-    sbs = parser.add_subparsers()
-    
+    sbs = parser.add_subparsers(dest="action", title="actions")
+    sbs.required = True
 
     def subparser(name, func):
         p = sbs.add_parser(name)
@@ -155,31 +160,31 @@ Eg.
     # init
     p = subparser("init", init)
     p.add_argument("output", type=pathlib.Path)
-    p.add_argument("source", type=split_source)
+    p.add_argument("uri")
 
     p = subparser("update", update)
     p.add_argument("output", type=pathlib.Path)
-    p.add_argument("source", nargs="?", type=split_source, default=(None, None))
+    p.add_argument("uri", nargs="?")
 
     options = parser.parse_args(args)
-    options.error = p.error
-    logging.basicConfig(level=logging.DEBUG if getattr(options, "verbose") else logging.INFO)
-    return options
-    
 
-def init(igit, ogit, subdir, source):
-    if not (igit.worktree / subdir).exists():
-        raise RuntimeError("no subdir under git repo", subdir, source)
-    
+    options.error = parser.error
+    logging.basicConfig(level=logging.DEBUG if options.verbose else logging.INFO)
+    return options
+
+
+def init(igit, ogit, subdir):
+    assert (igit.worktree / subdir).exists()
+
     # prepping the legacy tree
 
-    log.debug("filtering repo paths")
     # filter existing commits
-    igit.run([ "filter-repo", 
+    log.debug("filtering existing commits")
+    igit.run([ "filter-repo",
                "--path", f"{subdir}/",
                "--path-rename", f"{subdir}/:" ])
 
-    # extract latest mod date 
+    # extract latest mod date
     log.debug("get latest modification date")
     txt = igit.run(["log", "--reverse", "--format=\"%t|%cd|%s\""])
     date = txt.split("\n")[0].split("|")[1]
@@ -206,19 +211,69 @@ def update(igit, ogit, subdir):
     # prepping the legacy tree
 
     # filter existing commits
-    igit.run([ "filter-repo", 
+    igit.run([ "filter-repo",
                "--path", f"{subdir}/",
                "--path-rename", f"{subdir}/:" ])
 
     # Add legacy plugin clone as a remote and
     #  pull contents into new branch
-    ogit.run(["remote", "add", "legacy", igit.worktree])
+    ogit.run(["remote", "add", "legacy-repo", igit.worktree])
     try:
-        ogit.run(["fetch", "legacy", "master",])
-        ogit.run(["checkout", "-B", "migrate", "--track", "legacy/master"])
+        ogit.run(["fetch", "legacy-repo", "master",])
+        ogit.run(["checkout", "-B", "migrate", "--track", "legacy-repo/master"])
         ogit.run(["rebase", "--committer-date-is-author-date", "master"])
     finally:
-        ogit.run(["remote", "remove", "legacy"])
+        ogit.run(["remote", "remove", "legacy-repo"])
+
+
+@contextlib.contextmanager
+def universe(tmpdir, output, func, error, uri):
+    """
+        (ogit) output/
+        (igit) <tmpdir>/legacy-repo
+    """
+
+    ogit = Git(worktree=output.resolve())
+    log.debug("output client %s", ogit)
+
+    if func == init and ogit.good():
+        error(f"directory already initialized, {ogit}")
+
+    branch = ogit.branch
+    if func == update:
+        if not ogit.good():
+            error(f"directory not ready/present/initialized, {ogit}")
+        if ogit.run(["status", "-s", "--porcelain"]).strip():
+            error(f"directory not clean (eg. git status has modification) on {ogit}")
+        if branch != "migrate":
+            ogit.branch = "migrate"
+            log.debug("switched from branch %s on %s", branch, ogit)
+
+    if uri:
+        source, subdir = split_source(uri)
+    else:
+        log.debug(f"getting source/subdir info from {ogit}")
+        txt = ogit.run(["config", "--local", "--get", "mono2repo.uri"])
+        source, subdir = split_source(txt)
+    log.debug("git repo source [%s]", source)
+    log.debug("repo subdir [%s]", subdir)
+
+    with tempdir(tmpdir) as tmp:
+        igit = Git.clone(source, tmp / "legacy-repo")
+        log.debug("input client %s", igit)
+        if not (igit.worktree / subdir).exists():
+            error(f"no subdir {subdir} under {igit}")
+
+        try:
+            yield ogit, igit, subdir
+        finally:
+            if branch == "migrate":
+                ogit.branch = branch
+                log.debug("restoring to old branch %s, %s", branch, ogit)
+        if uri:
+            # finally we'll leave the configuration parameters for the update
+            log.debug("writing config uri in {ogit}")
+            ogit.run(["config", "--local", "mono2repo.uri", uri, ])
 
 
 def main(options=None):
@@ -232,32 +287,10 @@ def main(options=None):
                       " (https://github.com/newren/git-filter-repo)")
     log.debug("filter-repo [%s]", filter_repo_version)
 
-    ogit = Git(worktree=options.output.resolve())
-    log.debug("output client %s", ogit)
-    if options.func == init and ogit.good():
-        options.error(f"directory already initialized, {ogit}")
+    kwargs = { n: getattr(options, n) for n in {"tmpdir", "output", "func", "error", "uri" } }
+    with universe(**kwargs) as (ogit, igit, subdir):
+        options.func(igit, ogit, subdir)
 
-    source, subdir = options.source
-    if not any(options.source):
-        log.debug(f"getting source info from {ogit}")
-        # detect from ogit the source
-        txt = ogit.run(["config", "--local", "--get", "mono2repo.uri"])
-        source, subdir = split_source(txt)
-
-    log.debug("git repo source [%s]", source)
-    log.debug("repo subdir [%s]", subdir)
-
-    with tempdir(options.tmpdir) as tmpdir:
-        igit = Git.clone(source, tmpdir / "legacy-repo")
-        log.debug("input client %s", igit)
-
-        if options.func.__name__ == "init":
-            init(igit, ogit, subdir, source)
-        else:
-            update(igit, ogit, subdir)
-    # finally we'll leave the configuration parameters for the update
-    ogit.run(["config", "--local", "mono2repo.uri", source + "/" + subdir, ]) 
-        
 
 if __name__ == "__main__":
     main(parse_args())
