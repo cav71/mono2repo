@@ -29,7 +29,8 @@ def get_commits(git, subdir=None, astype=set):
     return astype(result) if astype else result
 
 
-def test_end2end(tmpdir):
+@pytest.mark.parametrize("climode", [ True, False ])
+def test_end2end(tmpdir, climode):
     tag = str(uuid.uuid1())
 
     # layout under tmpdir
@@ -48,7 +49,12 @@ def test_end2end(tmpdir):
     cmd += [ "init", ]
     cmd += [ "--tmpdir", tmpdir ]
     cmd += [ tmpdir / "converted", os.getenv("S"), ]
-    subprocess.check_call([ str(c) for c in cmd])
+
+    if climode:
+        subprocess.check_call([ str(c) for c in cmd])
+    else:
+        mono2repo.main(cmd[2:])
+
     converted = mono2repo.Git(tmpdir / "converted")
     converted_commits = get_commits(converted)
 
@@ -81,7 +87,11 @@ def test_end2end(tmpdir):
     cmd += [ "update", ]
     cmd += [ "--tmpdir", tmpdir ]
     cmd += [ converted.worktree, ]
-    subprocess.check_call([ str(c) for c in cmd])
+
+    if climode:
+        subprocess.check_call([ str(c) for c in cmd])
+    else:
+        mono2repo.main(cmd[2:])
     converted_commits = get_commits(converted)
 
     assert (converted_commits - source_commits) == \
