@@ -1,9 +1,12 @@
 import sys
-import pytest
 import pathlib
+
+import pytest
 import mono2repo
 
+
 PNAME = pathlib.Path(sys.argv[0]).name
+
 
 def test_parse_no_args(capsys):
     pytest.raises(SystemExit, mono2repo.parse_args, [])
