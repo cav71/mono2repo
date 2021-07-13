@@ -166,7 +166,7 @@ Eg.
     p.add_argument("output", type=pathlib.Path)
     p.add_argument("uri", nargs="?")
 
-    options = parser.parse_args(args)
+    options = parser.parse_args([str(a) for a in args] if args else None)
 
     options.error = parser.error
     logging.basicConfig(level=logging.DEBUG if options.verbose else logging.INFO)
@@ -277,7 +277,7 @@ def universe(tmpdir, output, func, error, uri):
 
 
 def main(options=None):
-    options = options or parse_args()
+    options = parse_args(options) if isinstance(options, (list, tuple, None.__class__)) else options
     log.debug("found system %s", platform.uname().system.lower())
     log.debug("git version [%s]", run(["git", "--version"]))
 
