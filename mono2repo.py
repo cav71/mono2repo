@@ -136,7 +136,7 @@ def parse_args(args=None):
     if isinstance(args,  (list, tuple, None.__class__)):
         args = None if args is None else [ str(a) for a in args]
     else:
-        return options
+        return args
 
     class F(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
         pass
