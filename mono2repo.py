@@ -133,6 +133,11 @@ class Git:
 
 
 def parse_args(args=None):
+    if isinstance(args,  (list, tuple, None.__class__)):
+        args = None if args is None else [ str(a) for a in args]
+    else:
+        return options
+
     class F(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
         pass
     parser = argparse.ArgumentParser(formatter_class=F, description="""
@@ -166,9 +171,9 @@ Eg.
     p.add_argument("output", type=pathlib.Path)
     p.add_argument("uri", nargs="?")
 
-    options = parser.parse_args([str(a) for a in args] if args else None)
-
+    options = parser.parse_args(args)
     options.error = parser.error
+
     logging.basicConfig(level=logging.DEBUG if options.verbose else logging.INFO)
     return options
 
@@ -277,7 +282,7 @@ def universe(tmpdir, output, func, error, uri):
 
 
 def main(options=None):
-    options = parse_args(options) if isinstance(options, (list, tuple, None.__class__)) else options
+    options = parse_args(options)
     log.debug("found system %s", platform.uname().system.lower())
     log.debug("git version [%s]", run(["git", "--version"]))
 
