@@ -47,7 +47,7 @@ def test_parse_invalid_init_args(capsys):
     args = [ "init" ]
     pytest.raises(SystemExit, mono2repo.parse_args, args)
     txt = f"""
-usage: {PNAME} init [-h] [-v] [--tmpdir TMPDIR] output uri
+usage: {PNAME} init [-h] [-v] [--tmpdir TMPDIR] [--branch MIGRATE] output uri
 {PNAME} init: error: the following arguments are required: output, uri
 """.strip()
     captured = capsys.readouterr()

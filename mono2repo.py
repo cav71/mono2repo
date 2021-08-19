@@ -60,6 +60,8 @@ def split_source(path):
         path1 = path[:path.find(".git")] + ".git"
         subdir1 = path[path.find(".git")+4:].lstrip("/")
         return (path1, subdir1)
+    elif pathlib.Path(path).exists():
+        return Git.findroot(pathlib.Path(path))
     raise ValueError("invalid git uri", path)
 
 
@@ -160,6 +162,7 @@ Eg.
         p.set_defaults(func=func)
         p.add_argument("-v", "--verbose", action="store_true")
         p.add_argument("--tmpdir", type=pathlib.Path)
+        p.add_argument("--branch", dest="migrate", default="migrate", help="name of the migrate branch")
         return p
 
     # init
@@ -178,7 +181,7 @@ Eg.
     return options
 
 
-def init(igit, ogit, subdir):
+def init(igit, ogit, subdir, migrate):
     assert (igit.worktree / subdir).exists()
 
     # prepping the legacy tree
@@ -206,13 +209,16 @@ def init(igit, ogit, subdir):
     ogit.run(["remote", "add", "legacy", igit.worktree])
     try:
         ogit.run(["fetch", "legacy", "master",])
-        ogit.run(["checkout", "-b", "migrate", "--track", "legacy/master"])
+        ogit.run(["checkout", "-b", migrate, "--track", "legacy/master"])
         ogit.run(["rebase", "--committer-date-is-author-date", "master"])
     finally:
         ogit.run(["remote", "remove", "legacy"])
 
+    # Finally we switch to the master branch
+    ogit.run(["checkout", "master"], silent=True)
 
-def update(igit, ogit, subdir):
+
+def update(igit, ogit, subdir, migrate):
     # prepping the legacy tree
 
     # filter existing commits
@@ -225,14 +231,14 @@ def update(igit, ogit, subdir):
     ogit.run(["remote", "add", "legacy-repo", igit.worktree])
     try:
         ogit.run(["fetch", "legacy-repo", "master",])
-        ogit.run(["checkout", "-B", "migrate", "--track", "legacy-repo/master"])
+        ogit.run(["checkout", "-B", migrate, "--track", "legacy-repo/master"])
         ogit.run(["rebase", "--committer-date-is-author-date", "master"])
     finally:
         ogit.run(["remote", "remove", "legacy-repo"])
 
 
 @contextlib.contextmanager
-def universe(tmpdir, output, func, error, uri):
+def universe(tmpdir, output, func, error, uri, migrate):
     """
         (ogit) output/
         (igit) <tmpdir>/legacy-repo
@@ -250,8 +256,8 @@ def universe(tmpdir, output, func, error, uri):
             error(f"directory not ready/present/initialized, {ogit}")
         if ogit.run(["status", "-s", "--porcelain"]).strip():
             error(f"directory not clean (eg. git status has modification) on {ogit}")
-        if branch != "migrate":
-            ogit.branch = "migrate"
+        if branch != migrate:
+            ogit.branch = migrate
             log.debug("switched from branch %s on %s", branch, ogit)
 
     if uri:
@@ -272,7 +278,7 @@ def universe(tmpdir, output, func, error, uri):
         try:
             yield ogit, igit, subdir
         finally:
-            if branch == "migrate":
+            if branch == migrate:
                 ogit.branch = branch
                 log.debug("restoring to old branch %s, %s", branch, ogit)
         if uri:
@@ -292,9 +298,9 @@ def main(options=None):
                       " (https://github.com/newren/git-filter-repo)")
     log.debug("filter-repo [%s]", filter_repo_version)
 
-    kwargs = { n: getattr(options, n) for n in {"tmpdir", "output", "func", "error", "uri" } }
+    kwargs = { n: getattr(options, n) for n in {"tmpdir", "output", "func", "error", "uri", "migrate" } }
     with universe(**kwargs) as (ogit, igit, subdir):
-        options.func(igit, ogit, subdir)
+        options.func(igit, ogit, subdir, options.migrate)
 
 
 if __name__ == "__main__":

@@ -1,19 +1,36 @@
 # mono2repo
-This module (and related script) creates a new stand alone repo out of
-monorepo subtree, including all the subtree history and commits.
+This module (and related script) extracts the content of a subtree in a monorepo and it creates a stand alone repo (copying the related history).
 
-
+Let say you have a monorepo with multiple projects (project1, project2 etc.) and we wan to make project1 a stand alone repo (retaining the project1 hostory):
+```shell
+monorepo/
+├── README.TXT
+├── misc
+│   └── more
+└── subfolder
+    ├── project1           # <-- we want to extract this
+    │   └── a
+    │       ├── hello.txt
+    │       └── subtree
+    ├── project2
+    └── project3
+```
+The command to to this is:
+```shell
+ mono2repo init -v project1 monorepo/subfolder/project1
+```
 ## Install
-
+Using pip:
 ```shell
 pip intall mono2repo
-
-(or you can just download the mono2repo.py module)
 ```
-
+The mono2repo.py is a standalone script and it can be just dowloaded:
+```shell
+curl -LO https://raw.githubusercontent.com/cav71/mono2repo/master/mono2repo.py
+```
 ## Example
 
-This is the pelican git source tree:
+For this example we first create the summary repo from the main pelican monorepo, then we update the summary with the new upstream changes:
 ```shell
 https://github.com/getpelican/pelican-plugins.git
    ....
@@ -21,19 +38,22 @@ https://github.com/getpelican/pelican-plugins.git
     ├── Readme.rst
     └── summary.py
 ```
-We want to extract the summary subdir and git log related entries.
-
 ### Create a new repo
-Create a new repo out of the pelican summary subtree:
+First we create a new repo:
 ```shell
 mono2repo init summary-extracted \
     https://github.com/getpelican/pelican-plugins.git/summary
 ```
-
+> **_NOTE:_** summary-extracted has two branches master and the migrate (leave this alone!).  It is not time to merge the changes into master: 
+> ```shell
+> cd summary-extracted
+> git checkout master
+> git merge migrate
+> ```
 ### Update the repo
+
 Update the summary-extracted with the latest summary related changes:
 ```
 mono2repo update summary-extracted
 ```
 
-(see https://blog.getpelican.com/namespace-plugin-migration.html for more details)

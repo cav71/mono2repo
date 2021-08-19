@@ -56,6 +56,8 @@ def test_end2end(tmpdir, climode):
         mono2repo.main(cmd[2:])
 
     converted = mono2repo.Git(tmpdir / "converted")
+    assert converted.branch == "master"
+    converted.branch = "migrate"
     converted_commits = get_commits(converted)
 
     # verify the conversion
