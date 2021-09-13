@@ -18,7 +18,7 @@ import shutil
 import tempfile
 
 
-__version__ = "0.0.6"
+__version__ = "0.0.7"
 __hash__ = ""
 
 log = logging.getLogger(__name__)
