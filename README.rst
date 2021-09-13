@@ -2,10 +2,26 @@
 mono2repo
 =========
 
+.. image:: https://img.shields.io/pypi/v/mono2repo.svg
+   :target: https://pypi.org/project/mono2repo
+   :alt: PyPI version
+
+.. image:: https://img.shields.io/pypi/pyversions/mono2repo.svg
+   :target: https://pypi.org/project/mono2repo
+   :alt: Python versions
+
+.. image:: https://github.com/cav71/mono2repo/actions/workflows/master.yml/badge.svg
+   :target: https://github.com/cav71/mono2repo/actions
+   :alt: Build
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://github.com/psf/black
+   :alt: Black
+
 This module (and related script) extracts the content of a subtree in a monorepo and it creates a stand alone repo (copying the related history).
 
 Let say you have a monorepo with multiple projects (project1, project2 etc.) 
-and we wan to make project1 a stand alone repo (retaining the project1 hostory)::
+and we wan to make project1 a stand alone repo (retaining the project1 history)::
 
     monorepo/
     ├── README.TXT
