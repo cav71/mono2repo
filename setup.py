@@ -1,52 +1,37 @@
-import os
 import re
-import sys
 import json
+import os
 import pathlib
-import collections
+import sys
 
+from setuptools import setup
 
-from setuptools import setup, find_namespace_packages
-
-import mono2repo
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import mono2repo  # noqa: E402
 
 
 def hubversion(gdata, fallback):
-    """returns (version, shasum)
-    >>> hubversion({
-        'ref': 'refs/heads/beta/0.0.4',
-        'sha': '2169f90c22e',
-        'run_number': '8',
-    }, None)
-    ('0.0.4b8', '2169f90c22e')
-    >>> hubversion({
-        'ref': 'refs/tags/release/0.0.3',
-        'sha': '5547365c82',
-        'run_number': '3',
-    }, None)
-    ('0.0.3', '5547365c82')
-    >>> hubversion({
-        'ref': 'refs/heads/master',
-        'sha': '2169f90c',
-        'run_number': '20',
-    }, '123'))
-    ('123', '2169f90c')
-"""
-    txt = gdata["ref"]
-    number = gdata['run_number']
-    shasum = gdata["sha"]
-    head, _, rest = txt.partition("/")
+    "extracts a (version, shasum) from a GITHUB_DUMP variable"
 
-    cases = [
-        ("refs/heads/master", fallback,),
-        ("refs/heads/beta/", f"b{number}"),
-        ("refs/tags/release/", ""),
-    ]
-    for pat, out in cases:
-        if not txt.startswith(pat):
-            continue
-        return txt[len(pat):] + out, shasum
-    raise RuntimeError("unhandled github ref", txt)
+    def getversion(txt):
+        return ".".join(str(int(v)) for v in txt.split("."))
+
+    ref = gdata["ref"]  # eg. "refs/tags/release/0.0.3"
+    number = gdata["run_number"]  # eg. 3
+    shasum = gdata["sha"]  # eg. "2169f90c"
+
+    if ref == "refs/heads/master":
+        return (fallback, shasum)
+
+    if ref.startswith("refs/heads/beta/"):
+        version = getversion(ref.rpartition("/")[2])
+        return (f"{version}b{number}", shasum)
+
+    if ref.startswith("refs/tags/release/"):
+        version = getversion(ref.rpartition("/")[2])
+        return (f"{version}", shasum)
+
+    raise RuntimeError("unhandled github ref", gdata)
 
 
 def update_version(data, path, fallback):
@@ -60,34 +45,50 @@ def update_version(data, path, fallback):
 
     exp = re.compile(r"__version__\s*=\s*")
     exp1 = re.compile(r"__hash__\s*=\s*")
-    assert len([ l for l in lines if exp.search(l)]) == 1
-    assert len([ l for l in lines if exp1.search(l)]) == 1
+    assert len([l for l in lines if exp.search(l)]) == 1  # noqa: E741
+    assert len([l for l in lines if exp1.search(l)]) == 1  # noqa: E741
 
     lines = [
-        f"__version__ = \"{version}\"" if exp.search(l) else
-        f"__hash__ = \"{thehash}\"" if exp1.search(l) else
-        l
-        for l in lines
+        f'__version__ = "{version}"'
+        if exp.search(l)
+        else f'__hash__ = "{thehash}"'
+        if exp1.search(l)
+        else l
+        for l in lines  # noqa: E741
     ]
 
-    pathlib.Path(mono2repo.__file__).write_text("\n".join(lines))
+    pathlib.Path(path).write_text("\n".join(lines))
     return version
 
 
-version = update_version(os.getenv("GITHUB_DUMP"),
-    mono2repo.__file__,
-    mono2repo.__version__)
+version = update_version(
+    os.getenv("GITHUB_DUMP"), mono2repo.__file__, mono2repo.__version__
+)
 
 
 setup(
     name="mono2repo",
     version=version,
     url="https://github.com/cav71/mono2repo",
-    py_modules=["mono2repo",],
-    entry_points = {
-        'console_scripts': ['mono2repo=mono2repo:main'],
+    py_modules=[
+        "mono2repo",
+    ],
+    entry_points={
+        "console_scripts": ["mono2repo=mono2repo:main"],
     },
     description="extract a monorepo subdir",
-    long_description=open("README.md").read(),
-    long_description_content_type="text/markdown",
+    long_description=pathlib.Path("README.rst").read_text(),
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Operating System :: OS Independent",
+        "License :: OSI Approved :: MIT License",
+    ],
 )
