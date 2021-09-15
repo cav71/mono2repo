@@ -19,7 +19,7 @@ import tempfile
 
 
 __version__ = "0.0.7"
-__hash__ = ""
+__hash__ = "<invalid-hash>"
 
 log = logging.getLogger(__name__)
 
@@ -34,8 +34,8 @@ class InvalidGitUriError(Mono2RepoError):
 
 def which(exe):
     cmd = {
-        "unix" : "which",
-        "windows" : "where",
+        "unix": "which",
+        "windows": "where",
     }[platform.uname().system.lower()]
     return subprocess.check_output([cmd, exe], encoding="utf-8").strip()
 
@@ -45,9 +45,12 @@ def run(args, abort=True, silent=False, dryrun=False):
     if dryrun:
         return [str(c) for c in cmd]
     try:
-        return subprocess.check_output([str(c) for c in cmd], encoding="utf-8",
-            stderr=subprocess.DEVNULL if silent else None).strip()
-    except:
+        return subprocess.check_output(
+            [str(c) for c in cmd],
+            encoding="utf-8",
+            stderr=subprocess.DEVNULL if silent else None,
+        ).strip()
+    except Exception:
         if abort is True:
             raise
         elif abort:
@@ -55,10 +58,14 @@ def run(args, abort=True, silent=False, dryrun=False):
 
 
 def split_source(path):
-    if re.search("^(http|https|git):", str(path)) or str(path).startswith("git@github.com:"):
+    if re.search("^(http|https|git):", str(path)) or str(path).startswith(
+        "git@github.com:"
+    ):
         assert ".git" in str(path), f"no .git in path {path}"
-        path1 = path[:path.find(".git")] + ".git"
-        subdir1 = path[path.find(".git")+4:].lstrip("/")
+        n = path.find(".git")
+        n_4 = n + 4
+        path1 = path[:n] + ".git"
+        subdir1 = path[n_4:].lstrip("/")
         return (path1, subdir1)
     elif pathlib.Path(path).exists():
         return Git.findroot(pathlib.Path(path))
@@ -101,12 +108,21 @@ class Git:
         self.worktree = pathlib.Path(worktree or os.getcwd())
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} branch={self.branch or 'undef'} worktree={self.worktree} at {hex(id(self))}>"
+        return (
+            f"<{self.__class__.__name__} "
+            f"branch={self.branch or 'undef'} worktree={self.worktree} "
+            f"at {hex(id(self))}>"
+        )
 
     def run(self, args, **kwargs):
-        cmd = [ "git", ]
+        cmd = [
+            "git",
+        ]
         if self.worktree:
-            cmd += [ "-C", self.worktree, ]
+            cmd += [
+                "-C",
+                self.worktree,
+            ]
         cmd.extend([args] if isinstance(args, str) else args)
         return run(cmd, **kwargs)
 
@@ -119,7 +135,12 @@ class Git:
     @property
     def branch(self):
         if self.good():
-            return self.run(["branch", "--show-current",]).strip()
+            return self.run(
+                [
+                    "branch",
+                    "--show-current",
+                ]
+            ).strip()
 
     @branch.setter
     def branch(self, value):
@@ -135,24 +156,33 @@ class Git:
 
 
 def parse_args(args=None):
-    if isinstance(args,  (list, tuple, None.__class__)):
-        args = None if args is None else [ str(a) for a in args]
+    if isinstance(args, (list, tuple, None.__class__)):
+        args = None if args is None else [str(a) for a in args]
     else:
         return args
 
-    class F(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
+    class F(
+        argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter
+    ):
         pass
-    parser = argparse.ArgumentParser(formatter_class=F, description="""
+
+    parser = argparse.ArgumentParser(
+        formatter_class=F,
+        description="""
 Create a new git checkout from a git repo.
-""",  epilog="""
+""",
+        epilog="""
 Eg.
     mono2repo init summary-extracted \\
         https://github.com/getpelican/pelican-plugins.git/summary
 
     mono2repo update summary-extracted
 
-""".rstrip())
-    parser.add_argument('--version', action='version', version=f"%(prog)s {__version__}")
+""".rstrip(),
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
 
     sbs = parser.add_subparsers(dest="action", title="actions")
     sbs.required = True
@@ -162,7 +192,12 @@ Eg.
         p.set_defaults(func=func)
         p.add_argument("-v", "--verbose", action="store_true")
         p.add_argument("--tmpdir", type=pathlib.Path)
-        p.add_argument("--branch", dest="migrate", default="migrate", help="name of the migrate branch")
+        p.add_argument(
+            "--branch",
+            dest="migrate",
+            default="migrate",
+            help="name of the migrate branch",
+        )
         return p
 
     # init
@@ -188,27 +223,30 @@ def init(igit, ogit, subdir, migrate):
 
     # filter existing commits
     log.debug("filtering existing commits")
-    igit.run([ "filter-repo",
-               "--path", f"{subdir}/",
-               "--path-rename", f"{subdir}/:" ])
+    igit.run(["filter-repo", "--path", f"{subdir}/", "--path-rename", f"{subdir}/:"])
 
     # extract latest mod date
     log.debug("get latest modification date")
-    txt = igit.run(["log", "--reverse", "--format=\"%t|%cd|%s\""])
+    txt = igit.run(["log", "--reverse", '--format="%t|%cd|%s"'])
     date = txt.split("\n")[0].split("|")[1]
     log.debug("got latest date [%s]", date)
 
     # Create a new (empty) repository
     log.debug("initializing work tree in %s", ogit.worktree)
     ogit.init("master")
-    ogit.run(["commit", "--allow-empty",
-                "-m", "Initial commit", "--date", date])
+    ogit.run(["commit", "--allow-empty", "-m", "Initial commit", "--date", date])
 
     # Add legacy plugin clone as a remote and
     #  pull contents into new branch
     ogit.run(["remote", "add", "legacy", igit.worktree])
     try:
-        ogit.run(["fetch", "legacy", "master",])
+        ogit.run(
+            [
+                "fetch",
+                "legacy",
+                "master",
+            ]
+        )
         ogit.run(["checkout", "-b", migrate, "--track", "legacy/master"])
         ogit.run(["rebase", "--committer-date-is-author-date", "master"])
     finally:
@@ -222,15 +260,19 @@ def update(igit, ogit, subdir, migrate):
     # prepping the legacy tree
 
     # filter existing commits
-    igit.run([ "filter-repo",
-               "--path", f"{subdir}/",
-               "--path-rename", f"{subdir}/:" ])
+    igit.run(["filter-repo", "--path", f"{subdir}/", "--path-rename", f"{subdir}/:"])
 
     # Add legacy plugin clone as a remote and
     #  pull contents into new branch
     ogit.run(["remote", "add", "legacy-repo", igit.worktree])
     try:
-        ogit.run(["fetch", "legacy-repo", "master",])
+        ogit.run(
+            [
+                "fetch",
+                "legacy-repo",
+                "master",
+            ]
+        )
         ogit.run(["checkout", "-B", migrate, "--track", "legacy-repo/master"])
         ogit.run(["rebase", "--committer-date-is-author-date", "master"])
     finally:
@@ -240,8 +282,8 @@ def update(igit, ogit, subdir, migrate):
 @contextlib.contextmanager
 def universe(tmpdir, output, func, error, uri, migrate):
     """
-        (ogit) output/
-        (igit) <tmpdir>/legacy-repo
+    (ogit) output/
+    (igit) <tmpdir>/legacy-repo
     """
 
     ogit = Git(worktree=output.resolve())
@@ -284,7 +326,14 @@ def universe(tmpdir, output, func, error, uri, migrate):
         if uri:
             # finally we'll leave the configuration parameters for the update
             log.debug("writing config uri in {ogit}")
-            ogit.run(["config", "--local", "mono2repo.uri", uri, ])
+            ogit.run(
+                [
+                    "config",
+                    "--local",
+                    "mono2repo.uri",
+                    uri,
+                ]
+            )
 
 
 def main(options=None):
@@ -294,11 +343,16 @@ def main(options=None):
 
     filter_repo_version = run(["git", "filter-repo", "--version"], False, True)
     if not filter_repo_version:
-        options.error("missing filter-repo git plugin"
-                      " (https://github.com/newren/git-filter-repo)")
+        options.error(
+            "missing filter-repo git plugin"
+            " (https://github.com/newren/git-filter-repo)"
+        )
     log.debug("filter-repo [%s]", filter_repo_version)
 
-    kwargs = { n: getattr(options, n) for n in {"tmpdir", "output", "func", "error", "uri", "migrate" } }
+    kwargs = {
+        n: getattr(options, n)
+        for n in {"tmpdir", "output", "func", "error", "uri", "migrate"}
+    }
     with universe(**kwargs) as (ogit, igit, subdir):
         options.func(igit, ogit, subdir, options.migrate)
 
