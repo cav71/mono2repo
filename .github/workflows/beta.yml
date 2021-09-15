@@ -80,7 +80,7 @@ jobs:
           PYTHONPATH: .
           GITHUB_DUMP: ${{ toJson(github) }}
         run: |
-          python -m build
+          python -m build -n
 
       - name: Publish packages
         shell: bash
