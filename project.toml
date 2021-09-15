@@ -1,2 +1,5 @@
+[build-system]
+requires = ["wheel", "setuptools", "setuptools-github"]
+
 [tool.black]
 line-length = 88

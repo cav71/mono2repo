@@ -80,7 +80,6 @@ jobs:
           PYTHONPATH: .
           GITHUB_DUMP: ${{ toJson(github) }}
         run: |
-          pip install setuptools-github
           python -m build
 
       - name: Publish packages
