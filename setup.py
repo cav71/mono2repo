@@ -4,6 +4,7 @@ import pathlib
 from setuptools import setup
 from setuptools.github import tools
 
+breakpoint()
 initfile = pathlib.Path(__file__).parent / "mono2repo.py"
 version = tools.update_version(initfile, os.getenv("GITHUB_DUMP"))
 
