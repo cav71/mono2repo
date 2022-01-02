@@ -1,9 +1,9 @@
-# PYTHONPATH=$(pwd) S=git@github.com:cav71/pelican-plugins.git/summary py.test -vvs tests/test_script.py -m manual
+# PYTHONPATH=$(pwd) S=git@github.com:cav71/pelican-plugins.git/summary py.tests -vvs tests/test_end2end.py -m manual  # noqa: E501
+
 import sys
 import os
 import shutil
 import uuid
-import pathlib
 import subprocess
 
 import pytest
@@ -21,15 +21,21 @@ def setup():
 
 
 def get_commits(git, subdir=None, astype=set):
-    subdir = [subdir,] if subdir else []
+    subdir = (
+        [
+            subdir,
+        ]
+        if subdir
+        else []
+    )
     result = [
-        " ".join(l.split(" ")[1:])
-        for l in git.run(["log", "--pretty=oneline", *subdir]).split("\n")
+        " ".join(loglines.split(" ")[1:])
+        for loglines in git.run(["log", "--pretty=oneline", *subdir]).split("\n")
     ]
     return astype(result) if astype else result
 
 
-@pytest.mark.parametrize("climode", [ True, False ])
+@pytest.mark.parametrize("climode", [True, False])
 def test_end2end(tmpdir, climode):
     tag = str(uuid.uuid1())
 
@@ -41,17 +47,25 @@ def test_end2end(tmpdir, climode):
     # clone the repo (source)
     uri, subdir = mono2repo.split_source(os.getenv("S"))
     source = mono2repo.Git.clone(uri, tmpdir / "source")
-    commits = source.run(["log", "--pretty=oneline", subdir])   
+    source.run(["log", "--pretty=oneline", subdir])
     source_commits = get_commits(source, subdir)
 
     # do the extract (converted and legacy-repo)
-    cmd  = [ sys.executable, mono2repo.__file__, ]
-    cmd += [ "init", ]
-    cmd += [ "--tmpdir", tmpdir ]
-    cmd += [ tmpdir / "converted", os.getenv("S"), ]
+    cmd = [
+        sys.executable,
+        mono2repo.__file__,
+    ]
+    cmd += [
+        "init",
+    ]
+    cmd += ["--tmpdir", tmpdir]
+    cmd += [
+        tmpdir / "converted",
+        os.getenv("S"),
+    ]
 
     if climode:
-        subprocess.check_call([ str(c) for c in cmd])
+        subprocess.check_call([str(c) for c in cmd])
     else:
         mono2repo.main(cmd[2:])
 
@@ -65,11 +79,10 @@ def test_end2end(tmpdir, climode):
     right = set(p.name for p in converted.worktree.glob("*"))
     assert left == (right - {".git"})
 
-    assert (converted_commits - source_commits) == {'Initial commit'}
+    assert (converted_commits - source_commits) == {"Initial commit"}
 
     # remove the legacy-repo
     shutil.rmtree((tmpdir / "legacy-repo"), ignore_errors=True)
-
 
     # end2end
     source_commits = get_commits(source, subdir)
@@ -81,23 +94,32 @@ def test_end2end(tmpdir, climode):
         print("Some random text", file=fp)
     source.run(["add", path])
     source.run(["commit", "-m", f"added {tag}", path])
-    source.run(["push",])
-    
+    source.run(
+        [
+            "push",
+        ]
+    )
 
     # update the converted repo
-    cmd  = [ sys.executable, mono2repo.__file__, ]
-    cmd += [ "update", ]
-    cmd += [ "--tmpdir", tmpdir ]
-    cmd += [ converted.worktree, ]
+    cmd = [
+        sys.executable,
+        mono2repo.__file__,
+    ]
+    cmd += [
+        "update",
+    ]
+    cmd += ["--tmpdir", tmpdir]
+    cmd += [
+        converted.worktree,
+    ]
 
     if climode:
-        subprocess.check_call([ str(c) for c in cmd])
+        subprocess.check_call([str(c) for c in cmd])
     else:
         mono2repo.main(cmd[2:])
     converted_commits = get_commits(converted)
 
-    assert (converted_commits - source_commits) == \
-        {'Initial commit', f'added {tag}'}
+    assert (converted_commits - source_commits) == {"Initial commit", f"added {tag}"}
 
     left = set(p.name for p in (source.worktree / subdir).glob("*"))
     right = set(p.name for p in converted.worktree.glob("*"))
