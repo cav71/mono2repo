@@ -63,7 +63,7 @@ jobs:
         run: |
           py.test \
               --cov=mono2repo \
-              --cov-report=html:$OUTDIR/coverage \
+              --cov-report=html:$OUTDIR/coverage --cov-report=xml:$OUTDIR/coverage.xml \
               --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
             tests
           echo "COVERAGE UNDER [$OUTDIR/junit/junit.xml]"s
@@ -72,7 +72,7 @@ jobs:
         uses: codecov/codecov-action@v2
         with:
           fail_ci_if_error: true
-          files: build/qa-${{ matrix.python-version }}/junit/junit.xml
+          files: build/qa-${{ matrix.python-version }}/coverage.xml
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v2
