@@ -23,7 +23,9 @@ usage: {PNAME} [-h] [--version] {{init,update}} ...
 def test_parse_help_args(capsys):
     args = ["--help"]
     pytest.raises(SystemExit, mono2repo.parse_args, args)
-    fixes = {}
+    fixes = {
+        "optional arguments": "optional arguments",
+    }
     if pyv >= (3, 10):
         fixes["optional arguments"] = "options"
 
