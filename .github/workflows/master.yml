@@ -36,7 +36,7 @@ jobs:
             pip install setuptools setuptools-github build wheel twine
             pip install -r tests/requirements.txt
 
-      - name: Static tests (lint, mypy etc.)
+      - name: Static tests (lint)
         shell: bash
         env:
           PYTHONPATH: .
@@ -45,6 +45,15 @@ jobs:
             flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
             # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
             flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Static tests (mypy)
+        shell: bash
+        env:
+          PYTHONPATH: .
+          OUTDIR: build/qa-${{ matrix.python-version }}
+        run: |
+          mypy mono2repo.py \
+            --no-incremental --xslt-html-report $OUTDIR/mypy
 
       - name: Runtime tests (unitest, coverage etc.)
         shell: bash
@@ -59,20 +68,11 @@ jobs:
             tests
           echo "COVERAGE UNDER [$OUTDIR/junit/junit.xml]"s
 
-      - name: Static check
-        shell: bash
-        env:
-          PYTHONPATH: .
-          OUTDIR: build/qa-${{ matrix.python-version }}
-        run: |
-          mypy mono2repo.py \
-            --no-incremental --xslt-html-report $OUTDIR/mypy
-
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v2
         with:
           fail_ci_if_error: true
-          files: build/qa-${{ matrix.python-version }}/junit/junit.xm
+          files: build/qa-${{ matrix.python-version }}/junit/junit.xml
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v2
