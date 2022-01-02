@@ -8,4 +8,4 @@ pre-commit
 pytest
 pytest-html
 pytest-cov
-
+pyfakefs
