@@ -4,7 +4,6 @@
 Example:
    ./mono2repo init outputdir \\
         https://github.com/cav71/pelican.git/pelican/themes/notmyidea
-
 """
 import os
 import re
