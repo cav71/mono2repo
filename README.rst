@@ -18,6 +18,11 @@ mono2repo
    :target: https://github.com/psf/black
    :alt: Black
 
+.. image:: https://codecov.io/gh/cav71/mono2repo/branch/master/graph/badge.svg?token=FZB02O3V2G
+   :target: https://codecov.io/gh/cav71/mono2repo
+   :alt: Coverage
+
+
 This module (and related script) extracts the content of a subtree in a monorepo and it creates a stand alone repo (copying the related history).
 
 Let say you have a monorepo with multiple projects (project1, project2 etc.) 
