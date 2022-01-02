@@ -57,6 +57,7 @@ jobs:
               --cov-report=html:$OUTDIR/coverage \
               --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
             tests
+          echo "COVERAGE UNDER [$OUTDIR/junit/junit.xml]"s
 
       - name: Static check
         shell: bash
