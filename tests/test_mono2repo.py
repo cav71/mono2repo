@@ -1,3 +1,5 @@
+import pathlib
+
 import pytest
 import mono2repo
 
@@ -38,7 +40,9 @@ def test_findroot(myfs):
     expected = myfs / "a/b/root"
     pytest.raises(mono2repo.InvalidGitDir, mono2repo.Git.findroot, myfs / "a/b")
     assert (expected, "") == mono2repo.Git.findroot(myfs / "a/b/root")
-    assert (expected, "d/e") == mono2repo.Git.findroot(myfs / "a/b/root/d/e")
+    assert (expected, str(pathlib.Path("d/e"))) == mono2repo.Git.findroot(
+        myfs / "a/b/root/d/e"
+    )
     try:
         cdir = os.getcwd()
         os.chdir(myfs / "a/b/root")
