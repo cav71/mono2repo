@@ -32,6 +32,10 @@ class InvalidGitUriError(Mono2RepoError):
     pass
 
 
+class InvalidGitDir(Mono2RepoError):
+    pass
+
+
 def which(exe):
     cmd = {
         "unix": "which",
@@ -90,13 +94,13 @@ class Git:
     @staticmethod
     def findroot(path):
         path = path or pathlib.Path(os.getcwd())
-        cpath = pathlib.Path(path)
-        while cpath.parent != cpath:
+        cpath = pathlib.Path(path).resolve()
+        while cpath != cpath.parent:
             if (cpath / ".git").exists():
-                subpath = pathlib.Path(path).relative_to(cpath)
+                subpath = pathlib.Path(path).resolve().relative_to(cpath)
                 return cpath, "" if str(subpath) == "." else str(subpath)
             cpath = cpath.parent
-        raise RuntimeError("cannot find git root", path)
+        raise InvalidGitDir("cannot find git root", path)
 
     @staticmethod
     def clone(uri, dst):

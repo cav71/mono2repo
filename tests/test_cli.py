@@ -2,31 +2,37 @@
 import sys
 import pathlib
 import pytest
+import platform
 import mono2repo
 
+pyv = tuple(int(v) for v in platform.python_version_tuple())
 
 PNAME = pathlib.Path(sys.argv[0]).name
 
 
 def test_parse_no_args(capsys):
     pytest.raises(SystemExit, mono2repo.parse_args, [])
-    txt = f"""
+    expected = f"""
 usage: {PNAME} [-h] [--version] {{init,update}} ...
-py.test: error: the following arguments are required: action
+{PNAME}: error: the following arguments are required: action
 """.lstrip()
     captured = capsys.readouterr()
-    assert txt == captured.err
+    assert captured.err == expected
 
 
 def test_parse_help_args(capsys):
-    args = [ "--help" ]
+    args = ["--help"]
     pytest.raises(SystemExit, mono2repo.parse_args, args)
-    txt = f"""
+    fixes = {}
+    if pyv >= (3, 10):
+        fixes["optional arguments"] = "options"
+
+    expected = f"""
 usage: {PNAME} [-h] [--version] {{init,update}} ...
 
 Create a new git checkout from a git repo.
 
-optional arguments:
+{fixes['optional arguments']}:
   -h, --help     show this help message and exit
   --version      show program's version number and exit
 
@@ -39,17 +45,15 @@ Eg.
 
     mono2repo update summary-extracted
 """.strip()
-    captured = capsys.readouterr()
-    assert txt in captured.out.strip()
+    assert capsys.readouterr().out.strip() == expected
 
 
 def test_parse_invalid_init_args(capsys):
-    args = [ "init" ]
+    args = ["init"]
     pytest.raises(SystemExit, mono2repo.parse_args, args)
-    txt = f"""
-usage: {PNAME} init [-h] [-v] [--tmpdir TMPDIR] [--branch MIGRATE] output uri
+    expected = f"""
+usage: {PNAME} init [-h] [-v] [--tmpdir TMPDIR] [--branch MIGRATE] output Xuri
 {PNAME} init: error: the following arguments are required: output, uri
 """.strip()
-    captured = capsys.readouterr()
-    assert txt == captured.err.strip()
 
+    assert capsys.readouterr().err.strip() == expected
