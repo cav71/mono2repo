@@ -61,7 +61,7 @@ def run(args, abort=True, silent=False, dryrun=False):
 
 
 def split_source(path):
-    if re.search("^(http|https|git):", str(path)) or str(path).startswith(
+    if re.search("^(http|https|git|ssh):", str(path)) or str(path).startswith(
         "git@github.com:"
     ):
         assert ".git" in str(path), f"no .git in path {path}"
