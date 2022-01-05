@@ -32,7 +32,7 @@ PYTHONPATH=$(pwd) \
 #### Betas
 Start a new beta branch:
 ```
-git push origin $(./maintaner/release.py micro src/setuptools_github/__init__.py)
+git push origin $(./maintaner/release.py micro mono2repo.py)
 ```
 
 #### Prod
