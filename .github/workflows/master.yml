@@ -11,6 +11,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 env:
   PACKAGE: mono2repo
+  PYTHONPATH: src
   GITHUB_DUMP: ${{ toJson(github) }}
   XPY: "3.12"
   XOS: "ubuntu-latest"
@@ -50,15 +51,12 @@ jobs:
 
       - name: Run Python checks (ruff)
         shell: bash
-        env:
-          PYTHONPATH: src
         run: |
            ruff check src tests
 
       - name: Run Python checks (mypy)
         shell: bash
         env:
-          PYTHONPATH: src
           OUTDIR: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
         run: |
           mypy src \
@@ -67,7 +65,6 @@ jobs:
       - name: Run Python checks (pytests)
         shell: bash
         env:
-          PYTHONPATH: src
           OUTDIR: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
         run: |
           py.test \
@@ -79,8 +76,9 @@ jobs:
       - name: Build wheel packages
         if: ${{ ! contains(matrix.os, 'windows') }}
         run: |
-          python support/release.py src/luxos/version.py
+          python support/release.py src/mono2repo/version.py
           touch .keepme
+
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v2
         with:
