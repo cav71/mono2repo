@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mono2repo"
-version = "0.1.1"
+version = "0.1.2"
 description = "create a standalone repo from a monorepo subdir."
 readme = "README.rst"
 license = { text = "MIT" }

@@ -23,7 +23,8 @@ mono2repo
    :alt: Coverage
 
 
-This module (and related script) extracts the content of a subtree in a monorepo and it creates a stand alone repo (copying the related history).
+This package (and related script) extracts the content of a subdirectory in a monorepo and 
+it creates a stand alone repo (copying the related history).
 
 Let say you have a monorepo with multiple projects (project1, project2 etc.) 
 and we wan to make project1 a stand alone repo (retaining the project1 history)::
@@ -40,19 +41,27 @@ and we wan to make project1 a stand alone repo (retaining the project1 history):
         ├── project2
         └── project3
 
-The command to to this is::
+Using mono2repo to extract project1::
 
     mono2repo init -v project1 monorepo/subfolder/project1
+
+Will generate::
+
+    monorepo/
+    ├── README.TXT
+    ├── misc
+    ...
+    project1/
+    └── a
+        ├── hello.txt
+        └── subtree
+
 
 Installation
 ------------
 You can install ``mono2repo`` via `pip`_ from `PyPI`_::
 
     $ pip install mono2repo
-
-The mono2repo.py is a standalone script and it can be just dowloaded::
-
-    curl -LO https://raw.githubusercontent.com/cav71/mono2repo/master/mono2repo.py
 
 
 Example

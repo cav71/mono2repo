@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import dataclasses as dc
 import shutil
 import subprocess
 from pathlib import Path
@@ -86,3 +87,23 @@ def github_dump_from_local(ref_type: str = "branch") -> dict[str, str]:
         "ref_name": run("git", "branch", "--show-current", output=True).strip(),
         "ref_type": ref_type,
     }
+
+
+@dc.dataclass
+class Git:
+    work_tree: Path
+    git_dir: Path | None = None
+
+    def __post_init__(self):
+        self.git_dir = self.git_dir or (self.work_tree / ".git")
+
+
+    def _run(self, *args, output: bool=False, kwargs: dict|None=None) -> str:
+        new_args = ["git", "--work-tree", self.work_tree, "--git-dir", self.git_dir, *args]
+        return run(*new_args, output=output, kwargs=kwargs)
+
+    def head(self):
+        return self._run("rev-parse", "HEAD", output=True).strip()
+
+    def branch(self):
+        return self._run("branch", "--show-current", output=True).strip()
