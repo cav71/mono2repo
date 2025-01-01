@@ -10,8 +10,9 @@ import pytest
 
 
 @pytest.fixture()
-def win32():
-    return sys.platform.startswith("win")
+def platform():
+    from platform import uname
+    return uname().system.lower()
 
 
 @pytest.fixture()

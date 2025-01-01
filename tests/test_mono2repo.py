@@ -13,8 +13,12 @@ def myfs(tmp_path):
     yield tmp_path
 
 
-def test_which(win32):
-    if win32:
+def test_platform(platform):
+    assert platform in {"windows", "darwin", "linux"}
+
+
+def test_which(platform):
+    if platform == "window":
         assert mono2repo.which("CMD.EXE") == "X"
     else:
         assert mono2repo.which("ls") == "/usr/bin/ls"
