@@ -13,6 +13,7 @@ env:
   GITHUB_DUMP: ${{ toJson(github) }}
   XPY: "3.12"
   XOS: "ubuntu-latest"
+  VERSIONFILE: src/mono2repo/mono2repo.py
 
 
 jobs:
@@ -74,7 +75,7 @@ jobs:
       - name: "Build wheel packages"
         if: ${{ ! contains(matrix.os, 'windows') }}
         run: |
-          python support/release.py src/mono2repo/version.py
+          python support/release.py $VERSIONFILE
           touch .keepme
 
       - name: "Upload pytest test results"
