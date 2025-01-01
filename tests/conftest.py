@@ -10,6 +10,12 @@ import pytest
 
 
 @pytest.fixture()
+def platform():
+    from platform import uname
+    return uname().system.lower()
+
+
+@pytest.fixture()
 def datadir(request):
     basedir = pathlib.Path(__file__).parent / "data"
     if os.getenv("DATADIR"):
