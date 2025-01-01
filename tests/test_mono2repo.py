@@ -13,6 +13,13 @@ def myfs(tmp_path):
     yield tmp_path
 
 
+def test_which(win32):
+    if win32:
+        assert mono2repo.which("CMD.EXE") == "X"
+    else:
+        assert mono2repo.which("ls") == "/usr/bin/ls"
+
+
 @pytest.mark.parametrize(
     "uri, expected",
     [
