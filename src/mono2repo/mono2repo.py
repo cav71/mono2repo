@@ -37,6 +37,7 @@ class InvalidGitDir(Mono2RepoError):
 
 def which(exe):
     cmd = {
+        "linux": "which",
         "unix": "which",
         "windows": "where",
     }[platform.uname().system.lower()]

@@ -11,7 +11,7 @@ import pytest
 
 @pytest.fixture()
 def win32():
-    return sys.platform.startswith("win"):
+    return sys.platform.startswith("win")
 
 
 @pytest.fixture()
