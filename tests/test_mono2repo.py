@@ -21,7 +21,7 @@ def test_which(platform):
     if platform == "window":
         assert mono2repo.which("CMD.EXE") == "X"
     else:
-        assert mono2repo.which("ls") == "/usr/bin/ls"
+        assert mono2repo.which("ls") in {"/bin/ls", "/usr/bin/ls"}
 
 
 @pytest.mark.parametrize(
