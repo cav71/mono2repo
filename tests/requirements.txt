@@ -1,3 +1,7 @@
+build
+mypy
 pytest
 pytest-cov
 pytest-html
+ruff
+lxml
