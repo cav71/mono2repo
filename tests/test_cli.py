@@ -3,7 +3,7 @@ import sys
 import pathlib
 import pytest
 import platform
-import mono2repo
+from mono2repo import mono2repo
 
 pyv = tuple(int(v) for v in platform.python_version_tuple())
 

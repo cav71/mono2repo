@@ -87,4 +87,3 @@ exclude_lines = [
 markers = [
     "manual: marks tests unsafe for auto-run (eg. better run them manually)",
 ]
-asyncio_default_fixture_loop_scope = "function"

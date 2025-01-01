@@ -1,7 +1,7 @@
 import pathlib
 
 import pytest
-import mono2repo
+from mono2repo import mono2repo
 
 
 @pytest.fixture(scope="function")
