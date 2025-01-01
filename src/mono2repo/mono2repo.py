@@ -17,7 +17,7 @@ import shutil
 import tempfile
 
 
-__version__ = "0.0.0"
+__version__ = ""
 __hash__ = ""
 
 log = logging.getLogger(__name__)
@@ -219,7 +219,8 @@ def update(igit, ogit, subdir):
         ogit.run(["remote", "remove", "legacy"])
 
 
-def main(options):
+def main(options=None):
+    options = options or parse_args()
     log.debug("found system %s", platform.uname().system.lower())
     log.debug("git version [%s]", run(["git", "--version"]))
 
@@ -257,4 +258,4 @@ def main(options):
         
 
 if __name__ == "__main__":
-    main(parse_args())
+    main()
