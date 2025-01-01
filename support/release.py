@@ -55,17 +55,26 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("versionfile", type=Path)
     parser.add_argument("--release", action="store_true")
-    parser.add_argument("--local", action="store_true")
+    parser.add_argument("--github-dump")
     parser.add_argument(
         "-n", "--dry-run", dest="dryrun", action="store_true", help="dry run"
     )
     options = parser.parse_args(args)
     options.error = parser.error
+
+    # 
+    if options.github_dump is None:
+        options.github_dump = os.getenv("GITHUB_DUMP")
+    elif options.github_dump == "local":
+        options.github_dump = common.github_dump_from_local()
+    else:
+        options.github_dump = json.loads(Path(options.github_dump).read_text())
+
     return options
 
 
 def main(args):
-    github_dump = common.github_dump_from_local() if args.local else os.getenv("GITHUB_DUMP")
+    github_dump = args.github_dump
     if not github_dump:
         args.error("missing GITHUB_DUMP variable")
     gdata = common.github_dump_validate(github_dump)
