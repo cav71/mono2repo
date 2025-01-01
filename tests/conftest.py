@@ -1,10 +1,11 @@
+import collections
+import contextlib
 import os
-import sys
 import pathlib
 import shutil
-import contextlib
-import collections
 import subprocess
+import sys
+
 import pytest
 
 

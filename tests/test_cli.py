@@ -1,8 +1,10 @@
 # test to garantee the cli interface is robust
-import sys
 import pathlib
-import pytest
 import platform
+import sys
+
+import pytest
+
 from mono2repo import mono2repo
 
 pyv = tuple(int(v) for v in platform.python_version_tuple())
