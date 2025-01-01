@@ -5,15 +5,15 @@
 #### Testing
 ```
 # stand alone
-PYTHONPATH=$(pwd) py.test -vvs tests
+PYTHONPATH=$(pwd)/src py.test -vvs tests
 
 # end2end with a remote repo
-PYTHONPATH=$(pwd) S=git@github.com:cav71/pelican-plugins.git/summary py.test -m manual -vvs tests
+PYTHONPATH=$(pwd)/src S=git@github.com:cav71/pelican-plugins.git/summary py.test -m manual -vvs tests
 ```
 
 #### Coverage
 ```
-PYTHONPATH=$(pwd) \
+PYTHONPATH=$(pwd)/src \
     py.test -vvs tests \
         --cov=mono2repo \
         --cov-report=html:build/coverage --cov-report=xml:build/coverage.xml \
@@ -22,7 +22,7 @@ PYTHONPATH=$(pwd) \
 
 #### MyPy
 ```
-PYTHONPATH=$(pwd) \
+PYTHONPATH=$(pwd)/src \
     mypy mono2repo.py \
         --no-incremental --xslt-html-report build/mypy
 ```

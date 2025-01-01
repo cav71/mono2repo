@@ -1,14 +1,14 @@
 # PYTHONPATH=$(pwd) S=git@github.com:cav71/pelican-plugins.git/summary py.tests -vvs tests/test_end2end.py -m manual  # noqa: E501
 
-import sys
 import os
 import shutil
-import uuid
 import subprocess
+import sys
+import uuid
 
 import pytest
 
-import mono2repo
+from mono2repo import mono2repo
 
 pytestmark = pytest.mark.manual
 
