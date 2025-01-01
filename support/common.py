@@ -75,6 +75,7 @@ def github_dump_validate(gdata: dict[str, Any], keys: list[str] | None = None) -
                 result[key] = GITHUB_KEYS[key](gdata[key]) if GITHUB_KEYS[key] else gdata[key]
             except:
                 print("****", key, GITHUB_KEYS)
+                print("****", key, gdata)
                 raise
     if missing:
         raise RuntimeError(f"missing keys: {', '.join(missing)}")
