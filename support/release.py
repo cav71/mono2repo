@@ -64,6 +64,8 @@ def parse_args(args=None):
 
     # 
     if options.github_dump is None:
+        if not os.getenv("GITHUB_DUMP"):
+            parser.error("GITHUB_DUMP environment variable empty or not defined")
         options.github_dump = json.loads(os.getenv("GITHUB_DUMP"))
     elif options.github_dump == "local":
         options.github_dump = common.github_dump_from_local()
@@ -74,10 +76,7 @@ def parse_args(args=None):
 
 
 def main(args):
-    github_dump = args.github_dump
-    if not github_dump:
-        args.error("missing GITHUB_DUMP variable")
-    gdata = common.github_dump_validate(github_dump)
+    gdata = common.github_dump_validate(args.github_dump)
 
     with common.savefiles() as save:
         # update pyproject.toml
