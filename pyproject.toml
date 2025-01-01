@@ -1,6 +1,89 @@
 [build-system]
-requires = [ "setuptools", "setuptools-github", "wheel" ]
-build-backend = 'setuptools.build_meta'
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
 
-[tool.black]
+
+[project]
+name = "mono2repo"
+version = "0.1.0"
+description = "create a standalone repo from a monorepo subdir."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">= 3.9"
+
+
+authors = [
+  { name = "Antonio Cavallo", email = "a.cavallo@cavallinux.eu" },
+]
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Source = "https://github.com/cav71/mono2repo"
+Issues = "https://github.com/cav71/mono2repo/issues"
+Documentation = "https://github.com/cav71/mono2repo"
+
+[project.scripts]
+mono2repo = "mono2repo.mono2repo:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py39"
 line-length = 88
+src = ["src/mono2repo"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ruff.lint]
+ignore = []
+select = ["F", "E", "W", "Q", "I001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mono2repo"]
+
+[tool.mypy]
+disallow_untyped_defs = false
+follow_imports = "normal"
+ignore_missing_imports = true
+pretty = true
+show_column_numbers = true
+show_error_codes = true
+warn_no_return = false
+warn_unused_ignores = true
+exclude = [
+    "^make\\.py",
+    "docs/conf\\.py",
+    "^docs/\\.*",
+    "^build/\\.*",
+]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.paths]
+source = [
+  "src/",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "manual: marks tests unsafe for auto-run (eg. better run them manually)",
+]
