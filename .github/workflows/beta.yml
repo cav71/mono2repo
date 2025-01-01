@@ -24,35 +24,35 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Dump env
+      - name: "Dump env"
         shell: bash
         run: |
           echo "github env:"
           echo "$GITHUB_DUMP"
 
-      - name: Checkout
+      - name: "Checkout"
         uses: actions/checkout@v4.1.0
         with:
           ref: ${{ github.event.push.ref }}
 
-      - name: Setup Python toolchain
+      - name: "Setup Python toolchain"
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Python dependencies
+      - name: "Setup Python dependencies"
         shell: bash
         run: |
             python -m pip install --upgrade pip
             pip install setuptools setuptools-github build wheel twine
             pip install -r tests/requirements.txt
 
-      - name: Run Python checks (ruff)
+      - name: "Run Python checks (ruff)"
         shell: bash
         run: |
            ruff check src tests
 
-      - name: Run Python checks (mypy)
+      - name: "Run Python checks (mypy)"
         shell: bash
         env:
           OUTDIR: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
@@ -60,7 +60,7 @@ jobs:
           mypy src \
             --no-incremental --xslt-html-report $OUTDIR/mypy
 
-      - name: Run Python checks (pytests)
+      - name: "Run Python checks (pytests)"
         shell: bash
         env:
           OUTDIR: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
@@ -71,19 +71,13 @@ jobs:
               --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
             tests
 
-      - name: Build wheel packages
+      - name: "Build wheel packages"
         if: ${{ ! contains(matrix.os, 'windows') }}
         run: |
           python support/release.py src/mono2repo/version.py
           touch .keepme
 
-      - name: "Upload coverage to Codecov"
-        uses: codecov/codecov-action@v2
-        with:
-          fail_ci_if_error: true
-          files: build/qa-${{ matrix.python-version }}/coverage.xml
-
-      - name: Upload pytest test results
+      - name: "Upload pytest test results"
         uses: actions/upload-artifact@v4
         with:
           name: pytest-results-${{ matrix.python-version }}
@@ -91,10 +85,15 @@ jobs:
         # Use always() to always run this step to publish test results when there are test failures
         if: always()
 
-      - name: "Publish beta package to pypi"
+      - name: "Upload coverage to Codecov"
+        uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true
+          files: build/qa-${{ matrix.python-version }}/coverage.xml
+
+
+      - name: "Upload beta package to pypi"
         uses: pypa/gh-action-pypi-publish@release/v1
         if: ${{ (matrix.python-version == env.XPY) && (matrix.os == env.XOS) }}
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
-
-
