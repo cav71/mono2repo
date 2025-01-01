@@ -29,7 +29,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Python dependencies
+      - name: Install Python dependencies
         shell: bash
         run: |
             python -m pip install --upgrade pip
@@ -51,7 +51,7 @@ jobs:
           mypy src \
             --no-incremental --xslt-html-report $OUTDIR/mypy
 
-      - name: Run Python checks
+      - name: Run Python checks (pytests)
         shell: bash
         env:
           PYTHONPATH: src
