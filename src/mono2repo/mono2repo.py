@@ -5,17 +5,16 @@ Example:
    ./mono2repo init outputdir \\
         https://github.com/cav71/pelican.git/pelican/themes/notmyidea
 """
-import os
-import re
+import argparse
 import contextlib
 import logging
-import platform
-import argparse
+import os
 import pathlib
-import subprocess
+import platform
+import re
 import shutil
+import subprocess
 import tempfile
-
 
 __version__ = ""
 __hash__ = ""
@@ -283,8 +282,65 @@ def update(igit, ogit, subdir, migrate):
         ogit.run(["remote", "remove", "legacy-repo"])
 
 
-def main(options=None):
-    options = options or parse_args()
+@contextlib.contextmanager
+def universe(tmpdir, output, func, error, uri, migrate):
+    """
+    (ogit) output/
+    (igit) <tmpdir>/legacy-repo
+    """
+
+    ogit = Git(worktree=output.resolve())
+    log.debug("output client %s", ogit)
+
+    if func == init and ogit.good():
+        error(f"directory already initialized, {ogit}")
+
+    branch = ogit.branch
+    if func == update:
+        if not ogit.good():
+            error(f"directory not ready/present/initialized, {ogit}")
+        if ogit.run(["status", "-s", "--porcelain"]).strip():
+            error(f"directory not clean (eg. git status has modification) on {ogit}")
+        if branch != migrate:
+            ogit.branch = migrate
+            log.debug("switched from branch %s on %s", branch, ogit)
+
+    if uri:
+        source, subdir = split_source(uri)
+    else:
+        log.debug(f"getting source/subdir info from {ogit}")
+        txt = ogit.run(["config", "--local", "--get", "mono2repo.uri"])
+        source, subdir = split_source(txt)
+    log.debug("git repo source [%s]", source)
+    log.debug("repo subdir [%s]", subdir)
+
+    with tempdir(tmpdir) as tmp:
+        igit = Git.clone(source, tmp / "legacy-repo")
+        log.debug("input client %s", igit)
+        if not (igit.worktree / subdir).exists():
+            error(f"no subdir {subdir} under {igit}")
+
+        try:
+            yield ogit, igit, subdir
+        finally:
+            if branch == migrate:
+                ogit.branch = branch
+                log.debug("restoring to old branch %s, %s", branch, ogit)
+        if uri:
+            # finally we'll leave the configuration parameters for the update
+            log.debug("writing config uri in {ogit}")
+            ogit.run(
+                [
+                    "config",
+                    "--local",
+                    "mono2repo.uri",
+                    uri,
+                ]
+            )
+
+
+def main(args=None):
+    options = parse_args(args)
     log.debug("found system %s", platform.uname().system.lower())
     log.debug("git version [%s]", run(["git", "--version"]))
 
