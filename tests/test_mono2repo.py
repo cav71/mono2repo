@@ -19,7 +19,7 @@ def test_platform(platform):
 
 def test_which(platform):
     if platform == "windows":
-        assert mono2repo.which("CMD.EXE") == "X"
+        assert mono2repo.which("CMD.EXE") == r"C:\Windows\System32\cmd.exe"
     else:
         assert mono2repo.which("ls") in {"/bin/ls", "/usr/bin/ls"}
 
