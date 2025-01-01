@@ -64,7 +64,7 @@ def parse_args(args=None):
 
     # 
     if options.github_dump is None:
-        options.github_dump = os.getenv("GITHUB_DUMP")
+        options.github_dump = json.loads(os.getenv("GITHUB_DUMP"))
     elif options.github_dump == "local":
         options.github_dump = common.github_dump_from_local()
     else:
